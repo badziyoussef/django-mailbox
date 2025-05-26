@@ -719,22 +719,24 @@ class Message(models.Model):
                 if encoding and encoding.lower() == 'quoted-printable':
                     # Cannot use `email.encoders.encode_quopri due to
                     # bug 14360: http://bugs.python.org/issue14360
-                    output = BytesIO()
-                    encode_quopri(
-                        BytesIO(
-                            attachment.document.read()
-                        ),
-                        output,
-                        quotetabs=True,
-                        header=False,
-                    )
-                    new.set_payload(
-                        output.getvalue().decode().replace(' ', '=20')
-                    )
+                    with attachment.document.open('rb') as f:
+                        output = BytesIO()
+                        encode_quopri(
+                            BytesIO(
+                                f.read()
+                            ),
+                            output,
+                            quotetabs=True,
+                            header=False,
+                        )
+                        new.set_payload(
+                            output.getvalue().decode().replace(' ', '=20')
+                        )
                     del new['Content-Transfer-Encoding']
                     new['Content-Transfer-Encoding'] = 'quoted-printable'
                 else:
-                    new.set_payload(attachment.document.read())
+                    with attachment.document.open('rb') as f:
+                        new.set_payload(f.read())
                     del new['Content-Transfer-Encoding']
                     encode_base64(new)
             except MessageAttachment.DoesNotExist:
